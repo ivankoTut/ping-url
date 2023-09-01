@@ -1,0 +1,31 @@
+env: "local"
+bot_token: you_bot_token
+log_file: "log/local.log"
+
+database:
+  postgres:
+    host: "localhost"
+    port: 5005
+    database: "ping_url"
+    user: "user"
+    password: "user"
+    migration_path: "file://migrations/postgres"
+  clickhouse:
+    host: "localhost"
+    port: 5002
+    database: "default"
+    user: "default"
+    password: "qwerty123"
+    migration_path: "file://migrations/clickhouse"
+  redis:
+    addr: localhost:5007
+    password: ""
+    db: 0
+
+jaeger:
+  url: "http://localhost:5009/api/traces"
+  name: "bot-command"
+  env: "development"
+
+
+default_time_ping: 10 # в секундах

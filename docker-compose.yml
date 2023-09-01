@@ -1,0 +1,75 @@
+version: '3'
+services:
+  jaeger:
+    container_name: ping_app_jaeger
+    image: jaegertracing/all-in-one
+    ports:
+      - "5009:14268"
+      - "5008:16686"
+
+  redis:
+    image: "redis:alpine"
+    container_name: ping_app_redis
+    ports:
+      - "5007:6379"
+    volumes:
+      - ./docker-data/redis-data:/var/lib/redis
+      - ./docker-data/redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_REPLICATION_MODE=master
+      - ALLOW_EMPTY_PASSWORD=yes
+
+  phpredisadmin:
+    container_name: ping_app_phpredisadmin
+    image: erikdubbelboer/phpredisadmin:latest
+    restart: unless-stopped
+    ports:
+      - "5006:80"
+    environment:
+      - REDIS_1_HOST=redis
+    depends_on:
+      - redis
+
+  postgresql:
+    image: postgres:14.2-alpine
+    container_name: ping_app_postgresql
+    environment:
+      POSTGRES_DB: ping_url
+      POSTGRES_PASSWORD: user
+      POSTGRES_USER: user
+    ports:
+      - '5005:5432'
+    volumes:
+      - ./docker-data/postgres:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ping_app_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: test@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: test
+    ports:
+      - "5004:80"
+    volumes:
+      - ./docker-data/pgadmin:/var/lib/pgadmin
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: ping_app_clickhouse
+    volumes:
+      - ./docker-data/clickhouse:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: qwerty123
+      CLICKHOUSE_DB: ping_stats
+    ports:
+      - "5003:9000"
+      - "5002:8123"
+
+  logs:
+    image: amir20/dozzle:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "5001:8080"
