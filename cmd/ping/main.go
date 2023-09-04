@@ -43,9 +43,13 @@ func main() {
 	})
 	go handlerBot.ListenCommandAndMessage()
 
+	//подключаемся к clickhouse
 	statisticRepo := clickhouse.MustCreateConnection(k.Config())
+
+	// инициируем и запускаем "пингер"
 	runer := ping.NewPing(pingRepository, k, statisticRepo, bot)
 	go runer.Run()
 
+	// сохраняем данные по "пингам"
 	runer.SaveCompleteUrl()
 }

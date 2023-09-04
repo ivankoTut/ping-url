@@ -109,9 +109,7 @@ func (p *Ping) startTicker(ctx context.Context, pingTime string, list model.Ping
 				go p.ping(ping)
 			}
 		case <-p.pingQuit:
-			fmt.Println("stop ticker")
 			ticker.Stop()
-			fmt.Println("stop ticker end")
 			return
 		}
 	}
@@ -154,8 +152,7 @@ func (p *Ping) SaveCompleteUrl() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		p.pingQuit <- struct{}{}
-		p.saveUrlQuit <- struct{}{}
+		p.stopPing()
 	}()
 
 	for {
@@ -200,6 +197,11 @@ func (p *Ping) sendErrorMessageInBot(ping model.Ping, err error) {
 	msg := tgbotapi.NewMessage(ping.UserId, fmt.Sprintf("<code>⚠️%s</code> \n \n <u>%s</u>", ping.Url, err))
 	msg.ParseMode = tgbotapi.ModeHTML
 	p.bot.SendMessage(msg)
+}
+
+func (p *Ping) stopPing() {
+	p.pingQuit <- struct{}{}
+	p.saveUrlQuit <- struct{}{}
 }
 
 func newCompleteList() model.PingResultList {

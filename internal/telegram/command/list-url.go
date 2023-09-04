@@ -54,6 +54,11 @@ func (l *ListUrl) Run(ctx context.Context, message *tgbotapi.Message) (tgbotapi.
 		return msg, err
 	}
 
+	if len(list) == 0 {
+		msg.Text = "У вас еще нет записей"
+		return msg, nil
+	}
+
 	str := strings.Builder{}
 	for _, url := range list {
 		str.WriteString(fmt.Sprintf("🌐 <code>%s</code> \n⏳ Время ожидания - <code>%s</code> \n🕤 Время периодичности - <code>%s</code>\n\n", url.Url, url.ConnectionTime, url.PingTime))
