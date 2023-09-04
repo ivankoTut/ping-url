@@ -233,6 +233,10 @@ func (p *Ping) withdraw() model.PingResultList {
 }
 
 func (p *Ping) sendErrorMessageInBot(ping model.Ping, err error) {
+	if ping.User.Mute {
+		return
+	}
+
 	msg := tgbotapi.NewMessage(ping.UserId, fmt.Sprintf("<code>⚠️%s</code> \n \n <u>%s</u>", ping.Url, err))
 	msg.ParseMode = tgbotapi.ModeHTML
 	p.bot.SendMessage(msg)

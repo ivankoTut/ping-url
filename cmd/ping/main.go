@@ -40,6 +40,8 @@ func main() {
 		command.NewAddUrlCommand(dc, pingRepository),
 		command.NewRegistrationCommand(userRepo),
 		command.NewListUrlCommand(pingRepository),
+		command.NewMuteCommand(userRepo),
+		command.NewUnmuteAllCommand(userRepo),
 	})
 	go handlerBot.ListenCommandAndMessage()
 

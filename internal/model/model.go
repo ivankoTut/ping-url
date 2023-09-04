@@ -6,6 +6,13 @@ type (
 		Url            string
 		ConnectionTime string
 		PingTime       string
+		User           User
+	}
+
+	User struct {
+		Id    int64
+		Login string
+		Mute  bool
 	}
 
 	PingList      []Ping

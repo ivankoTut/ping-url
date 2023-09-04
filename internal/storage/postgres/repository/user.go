@@ -43,3 +43,27 @@ func (u *User) UserSave(ctx context.Context, userId int64, login string) error {
 
 	return nil
 }
+
+func (u *User) Mute(ctx context.Context, userId int64) error {
+	return u.muteUnmute(ctx, userId, true)
+}
+
+func (u *User) Unmute(ctx context.Context, userId int64) error {
+	return u.muteUnmute(ctx, userId, false)
+}
+
+func (u *User) muteUnmute(ctx context.Context, userId int64, mute bool) error {
+	const op = "storage.postgres.repository.user.muteUnmute"
+
+	stmt, err := u.connection.DB().Prepare("update users set mute = $1 where id = $2")
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(mute, userId)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}

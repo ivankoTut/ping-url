@@ -45,7 +45,11 @@ func (p *Ping) UrlExist(userId int64, url string) (bool, error) {
 func (p *Ping) UrlListByUser(userId int64) (model.PingList, error) {
 	const op = "storage.postgres.repository.ping.UrlListByUser"
 
-	rows, err := p.connection.DB().Query(`select url, user_id, connection_time, ping_time from ping where user_id = $1`, userId)
+	rows, err := p.connection.DB().Query(`
+		select p.url, p.user_id, p.connection_time, p.ping_time, u.id, u.login, u.mute from ping as p 
+		left join users as u on p.user_id = u.id
+		where p.user_id = $1`, userId,
+	)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -55,7 +59,7 @@ func (p *Ping) UrlListByUser(userId int64) (model.PingList, error) {
 	var links model.PingList
 	var link model.Ping
 	for rows.Next() {
-		err := rows.Scan(&link.Url, &link.UserId, &link.ConnectionTime, &link.PingTime)
+		err := rows.Scan(&link.Url, &link.UserId, &link.ConnectionTime, &link.PingTime, &link.User.Id, &link.User.Login, &link.User.Mute)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -69,7 +73,12 @@ func (p *Ping) UrlListByUser(userId int64) (model.PingList, error) {
 func (p *Ping) UrlList(limit, offset int) (model.TimerPingList, error) {
 	const op = "storage.postgres.repository.ping.UrlList"
 
-	rows, err := p.connection.DB().Query(`select url, user_id, connection_time, ping_time from ping limit $1 offset $2`, limit, offset)
+	rows, err := p.connection.DB().Query(`
+		select p.url, p.user_id, p.connection_time, p.ping_time, u.id, u.login, u.mute from ping as p 
+		left join users as u on p.user_id = u.id limit $1 offset $2`,
+		limit,
+		offset,
+	)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -79,7 +88,7 @@ func (p *Ping) UrlList(limit, offset int) (model.TimerPingList, error) {
 	links := make(model.TimerPingList)
 	var link model.Ping
 	for rows.Next() {
-		err := rows.Scan(&link.Url, &link.UserId, &link.ConnectionTime, &link.PingTime)
+		err := rows.Scan(&link.Url, &link.UserId, &link.ConnectionTime, &link.PingTime, &link.User.Id, &link.User.Login, &link.User.Mute)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}

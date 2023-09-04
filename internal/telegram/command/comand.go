@@ -15,6 +15,8 @@ const (
 	registrationCommand = "start"
 	addUrlCommand       = "add_url"
 	listUrlCommand      = "list_url"
+	MuteAllCommand      = "mute_all"
+	UnMuteAllCommand    = "unmute_all"
 )
 
 var tracer trace.Tracer
