@@ -88,3 +88,19 @@ func (p *Ping) UrlList(limit, offset int) (model.TimerPingList, error) {
 
 	return links, nil
 }
+
+func (p *Ping) Count() (int, error) {
+	const op = "storage.postgres.repository.ping.UrlList"
+
+	rows, err := p.connection.DB().Query(`select count(*) from ping`)
+	count := 0
+	if err != nil {
+		return count, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	rows.Next()
+	err = rows.Scan(&count)
+
+	return count, err
+}

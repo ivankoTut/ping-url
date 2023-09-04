@@ -22,10 +22,13 @@ import (
 const defaultCompleteUrlItems = 1000
 
 type (
+	// UrlListProvider Интерфейс реалезует возможность получать список ссылок для "пингов"
 	UrlListProvider interface {
 		UrlList(limit, offset int) (model.TimerPingList, error)
+		Count() (int, error)
 	}
 
+	// SaveUrlStatistic Интерфейс реалезует возможность сохранять данные по "пингам"
 	SaveUrlStatistic interface {
 		InsertRows(model.PingResultList) error
 	}
@@ -35,6 +38,7 @@ type (
 		kernel        *kernel.Kernel
 		completeUrl   model.PingResultList
 		statisticRepo SaveUrlStatistic
+		countPing     int
 		bot           *telegram.Bot
 		rwm           sync.RWMutex
 		pingList      chan model.TimerPingList
@@ -74,19 +78,27 @@ func (p *Ping) Run() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		p.countPing, err = p.listProvider.Count()
+
+		if err != nil {
+			p.kernel.Log().Info(fmt.Sprintf("%s, ошибка в получении кол-ва записей: %s", op, err))
+		}
+
 		p.pingList <- timerList
 	}()
 
-	for pingTime, list := range <-p.pingList {
+	for {
+		for pingTime, list := range <-p.pingList {
 
-		fmt.Println("--------", "start", pingTime, "-------")
+			p.kernel.Log().Info(fmt.Sprintf("-------- start %s(%d)-------", pingTime, len(list)))
 
-		ctx, span := tracer.Start(context.Background(), "start timer")
-		span.SetAttributes(attribute.String("Ping time", pingTime), attribute.Int("Count records", len(list)))
+			ctx, span := tracer.Start(context.Background(), "start timer")
+			span.SetAttributes(attribute.String("Ping time", pingTime), attribute.Int("Count records", len(list)))
 
-		go p.startTicker(ctx, pingTime, list)
+			go p.startTicker(ctx, pingTime, list)
 
-		span.End()
+			span.End()
+		}
 	}
 }
 
@@ -152,18 +164,45 @@ func (p *Ping) SaveCompleteUrl() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		p.stopPing()
+		p.saveUrlQuit <- struct{}{}
 	}()
 
 	for {
 		select {
 		case <-time.After(time.Second * 30):
 			p.startInserting()
+			p.refreshPingList()
 		case <-p.saveUrlQuit:
 			p.startInserting()
 			return
 		}
 	}
+}
+
+func (p *Ping) refreshPingList() {
+	const op = "ping.ping.refreshPingList"
+
+	count, err := p.listProvider.Count()
+	if err != nil {
+		p.kernel.Log().Error(fmt.Sprintf("%s, error: %s", op, err))
+		return
+	}
+
+	fmt.Println(fmt.Sprintf("old count: %d, new count: %d", p.countPing, count))
+
+	if count == p.countPing {
+		return
+	}
+
+	timerList, err := p.listProvider.UrlList(100, 0)
+	if err != nil {
+		log.Fatal(fmt.Sprintf("%s, error: %s", op, err))
+	}
+
+	p.stopPing()
+
+	p.countPing = count
+	p.pingList <- timerList
 }
 
 func (p *Ping) startInserting() {
@@ -201,7 +240,6 @@ func (p *Ping) sendErrorMessageInBot(ping model.Ping, err error) {
 
 func (p *Ping) stopPing() {
 	p.pingQuit <- struct{}{}
-	p.saveUrlQuit <- struct{}{}
 }
 
 func newCompleteList() model.PingResultList {
