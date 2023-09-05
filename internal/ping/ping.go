@@ -7,6 +7,7 @@ import (
 	"github.com/ivankoTut/ping-url/internal/kernel"
 	"github.com/ivankoTut/ping-url/internal/model"
 	"github.com/ivankoTut/ping-url/internal/telegram"
+	"github.com/ivankoTut/ping-url/internal/telegram/command"
 	"github.com/ivankoTut/ping-url/internal/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -14,12 +15,19 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"sync"
 	"syscall"
 	"time"
 )
 
 const defaultCompleteUrlItems = 1000
+
+var refreshCommandList = []string{
+	command.AddUrlCommand,
+	command.MuteAllCommand,
+	command.UnMuteAllCommand,
+}
 
 type (
 	// UrlListProvider Интерфейс реалезует возможность получать список ссылок для "пингов"
@@ -171,7 +179,7 @@ func (p *Ping) SaveCompleteUrl() {
 		select {
 		case <-time.After(time.Second * 30):
 			p.startInserting()
-			p.refreshPingList()
+			p.refreshPingList(false)
 		case <-p.saveUrlQuit:
 			p.startInserting()
 			return
@@ -179,7 +187,19 @@ func (p *Ping) SaveCompleteUrl() {
 	}
 }
 
-func (p *Ping) refreshPingList() {
+func (p *Ping) ListenCommandEvents(commandEvent <-chan model.CommandEvent) {
+	for {
+		select {
+		case event := <-commandEvent:
+			if p.isRefreshEvent(event) {
+				p.kernel.Log().Debug(fmt.Sprintf("refresh %s command %s", event.Process, event.Command))
+				p.refreshPingList(true)
+			}
+		}
+	}
+}
+
+func (p *Ping) refreshPingList(force bool) {
 	const op = "ping.ping.refreshPingList"
 
 	count, err := p.listProvider.Count()
@@ -188,9 +208,9 @@ func (p *Ping) refreshPingList() {
 		return
 	}
 
-	fmt.Println(fmt.Sprintf("old count: %d, new count: %d", p.countPing, count))
+	p.kernel.Log().Debug(fmt.Sprintf("old count: %d, new count: %d", p.countPing, count))
 
-	if count == p.countPing {
+	if count == p.countPing && force == false {
 		return
 	}
 
@@ -244,6 +264,10 @@ func (p *Ping) sendErrorMessageInBot(ping model.Ping, err error) {
 
 func (p *Ping) stopPing() {
 	p.pingQuit <- struct{}{}
+}
+
+func (p *Ping) isRefreshEvent(event model.CommandEvent) bool {
+	return slices.Contains(refreshCommandList, event.Command)
 }
 
 func newCompleteList() model.PingResultList {

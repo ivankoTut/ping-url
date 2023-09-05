@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/ivankoTut/ping-url/internal/kernel"
+	"github.com/ivankoTut/ping-url/internal/model"
 	"github.com/ivankoTut/ping-url/internal/telegram"
 	"github.com/ivankoTut/ping-url/internal/tracing"
 	"go.opentelemetry.io/otel/attribute"
@@ -12,9 +13,9 @@ import (
 )
 
 const (
-	registrationCommand = "start"
-	addUrlCommand       = "add_url"
-	listUrlCommand      = "list_url"
+	RegistrationCommand = "start"
+	AddUrlCommand       = "add_url"
+	ListUrlCommand      = "list_url"
 	MuteAllCommand      = "mute_all"
 	UnMuteAllCommand    = "unmute_all"
 )
@@ -37,6 +38,7 @@ type (
 		CommandName() string
 		HelpText() string
 		IsSupport(ctx context.Context, message *tgbotapi.Message) (bool, error)
+		IsComplete(ctx context.Context, message *tgbotapi.Message) (bool, error)
 		Run(ctx context.Context, message *tgbotapi.Message) (tgbotapi.MessageConfig, error)
 		ClearData(ctx context.Context, message *tgbotapi.Message) error
 	}
@@ -46,6 +48,7 @@ type (
 		kernel   *kernel.Kernel
 		bot      *telegram.Bot
 		commands []HandlerCommand
+		event    chan model.CommandEvent
 	}
 )
 
@@ -54,6 +57,7 @@ func NewCommand(kernel *kernel.Kernel, bot *telegram.Bot, commands []HandlerComm
 		bot:      bot,
 		commands: commands,
 		kernel:   kernel,
+		event:    make(chan model.CommandEvent, 100),
 	}
 }
 
@@ -66,6 +70,10 @@ func (c *Command) ListenCommandAndMessage() {
 			c.runCommand(command)
 		}
 	}
+}
+
+func (c *Command) CommandEventChanelRead() <-chan model.CommandEvent {
+	return c.event
 }
 
 func (c *Command) runCommand(message *tgbotapi.Message) {
@@ -107,6 +115,13 @@ func (c *Command) runCommand(message *tgbotapi.Message) {
 			c.kernel.Log().Error(fmt.Sprintf("%s%s: error: %s", op, handle.CommandName(), err))
 		}
 
+		err = c.emitEvent(ctx, message, handle, model.ProcessAfter)
+		if err != nil {
+			span.SetAttributes(attribute.String("error emit event", handle.CommandName()))
+			span.RecordError(err)
+			c.kernel.Log().Debug(fmt.Sprintf("%s%s: %s", op, handle.CommandName(), err))
+		}
+
 		err = c.bot.SendMessage(msg)
 		if err != nil {
 			span.SetAttributes(attribute.String("error send message", handle.CommandName()))
@@ -116,4 +131,23 @@ func (c *Command) runCommand(message *tgbotapi.Message) {
 
 		span.End()
 	}
+}
+
+func (c *Command) emitEvent(ctx context.Context, message *tgbotapi.Message, handle HandlerCommand, process model.ProcessType) error {
+
+	complete, err := handle.IsComplete(ctx, message)
+	if err != nil {
+		return err
+	}
+
+	if complete == false {
+		return nil
+	}
+
+	c.event <- model.CommandEvent{
+		Command: handle.CommandName(),
+		Process: model.ProcessAfter,
+	}
+
+	return nil
 }

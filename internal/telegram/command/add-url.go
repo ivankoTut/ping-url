@@ -52,7 +52,7 @@ func NewAddUrlCommand(dialog DialogChain, urlRepo UrlSaver) *AddUrl {
 }
 
 func (a *AddUrl) CommandName() string {
-	return addUrlCommand
+	return AddUrlCommand
 }
 
 func (a *AddUrl) HelpText() string {
@@ -81,6 +81,18 @@ func (a *AddUrl) IsSupport(ctx context.Context, message *tgbotapi.Message) (bool
 	}
 
 	return is, nil
+}
+
+func (a *AddUrl) IsComplete(ctx context.Context, message *tgbotapi.Message) (bool, error) {
+
+	key := a.key(message)
+
+	is, err := a.dialog.DialogExist(ctx, key)
+	if err != nil {
+		return false, err
+	}
+
+	return is == false, nil
 }
 
 func (a *AddUrl) Run(ctx context.Context, message *tgbotapi.Message) (tgbotapi.MessageConfig, error) {

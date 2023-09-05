@@ -23,7 +23,7 @@ func NewRegistrationCommand(userRepo RegistrationUser) *Registration {
 }
 
 func (r *Registration) CommandName() string {
-	return registrationCommand
+	return RegistrationCommand
 }
 
 func (r *Registration) HelpText() string {
@@ -67,4 +67,8 @@ func (r *Registration) Run(ctx context.Context, message *tgbotapi.Message) (tgbo
 	}
 
 	return msg, err
+}
+
+func (r *Registration) IsComplete(ctx context.Context, message *tgbotapi.Message) (bool, error) {
+	return true, nil
 }
