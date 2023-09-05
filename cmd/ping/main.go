@@ -52,6 +52,9 @@ func main() {
 	runer := ping.NewPing(pingRepository, k, statisticRepo, bot)
 	go runer.Run()
 
+	// слушаем события от бота по командам
+	go runer.ListenCommandEvents(handlerBot.CommandEventChanelRead())
+
 	// сохраняем данные по "пингам"
 	runer.SaveCompleteUrl()
 }

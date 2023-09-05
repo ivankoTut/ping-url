@@ -59,3 +59,7 @@ func (m *MuteAll) Run(ctx context.Context, message *tgbotapi.Message) (tgbotapi.
 func (m *MuteAll) ClearData(ctx context.Context, message *tgbotapi.Message) error {
 	return nil
 }
+
+func (m *MuteAll) IsComplete(ctx context.Context, message *tgbotapi.Message) (bool, error) {
+	return true, nil
+}

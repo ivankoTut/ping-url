@@ -27,7 +27,7 @@ func NewListUrlCommand(urlRepo UserUrlList) *ListUrl {
 }
 
 func (l *ListUrl) CommandName() string {
-	return listUrlCommand
+	return ListUrlCommand
 }
 
 func (l *ListUrl) HelpText() string {
@@ -72,4 +72,8 @@ func (l *ListUrl) Run(ctx context.Context, message *tgbotapi.Message) (tgbotapi.
 func (l *ListUrl) ClearData(ctx context.Context, message *tgbotapi.Message) error {
 
 	return nil
+}
+
+func (l *ListUrl) IsComplete(ctx context.Context, message *tgbotapi.Message) (bool, error) {
+	return true, nil
 }
