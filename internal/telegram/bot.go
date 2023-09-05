@@ -1,20 +1,27 @@
 package telegram
 
 import (
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/ivankoTut/ping-url/internal/kernel"
 	"log"
 )
 
-type Bot struct {
-	bot     *tgbotapi.BotAPI
-	cfg     tgbotapi.UpdateConfig
-	kernel  *kernel.Kernel
-	Command chan *tgbotapi.Message
-	Message chan *tgbotapi.Message
-}
+type (
+	AccessUserProvider interface {
+		IsAccess(userId int64) bool
+	}
+	Bot struct {
+		bot                *tgbotapi.BotAPI
+		cfg                tgbotapi.UpdateConfig
+		kernel             *kernel.Kernel
+		accessUserProvider AccessUserProvider
+		Command            chan *tgbotapi.Message
+		Message            chan *tgbotapi.Message
+	}
+)
 
-func MustCreateBot(kernel *kernel.Kernel) *Bot {
+func MustCreateBot(kernel *kernel.Kernel, accessUserProvider AccessUserProvider) *Bot {
 	bot, err := tgbotapi.NewBotAPI(kernel.Config().BotToken)
 	if err != nil {
 		log.Panic(err)
@@ -24,11 +31,12 @@ func MustCreateBot(kernel *kernel.Kernel) *Bot {
 	u.Timeout = 60
 
 	return &Bot{
-		bot:     bot,
-		cfg:     u,
-		kernel:  kernel,
-		Command: make(chan *tgbotapi.Message),
-		Message: make(chan *tgbotapi.Message),
+		bot:                bot,
+		cfg:                u,
+		kernel:             kernel,
+		accessUserProvider: accessUserProvider,
+		Command:            make(chan *tgbotapi.Message),
+		Message:            make(chan *tgbotapi.Message),
 	}
 }
 
@@ -39,6 +47,11 @@ func (b *Bot) StartListen() {
 
 	for update := range updates {
 		if update.Message == nil {
+			continue
+		}
+
+		if !b.accessUserProvider.IsAccess(update.Message.Chat.ID) {
+			b.kernel.Log().Info(fmt.Sprintf("not access for user: %d", update.Message.Chat.ID))
 			continue
 		}
 

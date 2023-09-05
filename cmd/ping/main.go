@@ -4,6 +4,7 @@ import (
 	"github.com/ivankoTut/ping-url/internal/config"
 	"github.com/ivankoTut/ping-url/internal/kernel"
 	"github.com/ivankoTut/ping-url/internal/ping"
+	"github.com/ivankoTut/ping-url/internal/secure"
 	"github.com/ivankoTut/ping-url/internal/storage/clickhouse"
 	"github.com/ivankoTut/ping-url/internal/storage/postgres"
 	postgresRepository "github.com/ivankoTut/ping-url/internal/storage/postgres/repository"
@@ -28,7 +29,7 @@ func main() {
 	k.Log().Debug("kernel is initialize")
 
 	// инициируем бота и начинаем слушать сообщения и команды в нем
-	bot := telegram.MustCreateBot(k)
+	bot := telegram.MustCreateBot(k, secure.NewUserProvider(cfg))
 	go bot.StartListen()
 
 	// подключаем команды, которые хотим обрабатывать и слушаем их
