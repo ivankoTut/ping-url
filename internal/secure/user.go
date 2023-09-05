@@ -14,5 +14,9 @@ func NewUserProvider(cfg *config.Config) *UserProvider {
 }
 
 func (u *UserProvider) IsAccess(userId int64) bool {
+	if len(u.cfg.AccessUserList) == 0 {
+		return true
+	}
+
 	return slices.Contains(u.cfg.AccessUserList, userId)
 }
