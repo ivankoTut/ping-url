@@ -15,6 +15,7 @@ type (
 		Database        Database `yaml:"database" env-required:"true"`
 		Jaeger          Jaeger   `yaml:"jaeger" env-required:"true"`
 		DefaultTimePing int64    `yaml:"default_time_ping" env-default:"300"`
+		AccessUserList  []int64  `yaml:"access_user_list"`
 	}
 
 	Database struct {
