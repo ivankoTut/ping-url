@@ -15,6 +15,7 @@ import (
 const (
 	RegistrationCommand = "start"
 	AddUrlCommand       = "add_url"
+	RemoveUrlCommand    = "remove_url"
 	ListUrlCommand      = "list_url"
 	MuteAllCommand      = "mute_all"
 	UnMuteAllCommand    = "unmute_all"

@@ -23,8 +23,10 @@ import (
 
 const defaultCompleteUrlItems = 1000
 
+// refreshCommandList список команд после которых необходимо обновить список ссылок
 var refreshCommandList = []string{
 	command.AddUrlCommand,
+	command.RemoveUrlCommand,
 	command.MuteAllCommand,
 	command.UnMuteAllCommand,
 }

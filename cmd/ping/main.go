@@ -39,6 +39,7 @@ func main() {
 
 	handlerBot := command.NewCommand(k, bot, []command.HandlerCommand{
 		command.NewAddUrlCommand(dc, pingRepository),
+		command.NewRemoveUrlCommand(dc, pingRepository),
 		command.NewRegistrationCommand(userRepo),
 		command.NewListUrlCommand(pingRepository),
 		command.NewMuteCommand(userRepo),

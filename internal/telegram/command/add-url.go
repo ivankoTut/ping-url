@@ -9,18 +9,18 @@ import (
 	"time"
 )
 
-const stateNone = -1
+const stateAddUrlNone = -1
 
 const (
-	stateBegin             = iota //Начало добавление ссылки
-	stateAddConnectionTime        //максимальное время ожидания ответа по ссылке
-	statePingTime                 //Время через которое необходимо делать опрос по ссылке
+	stateAddUrlBegin             = iota //Начало добавление ссылки
+	stateAddUrlAddConnectionTime        //максимальное время ожидания ответа по ссылке
+	stateAddUrlPingTime                 //Время через которое необходимо делать опрос по ссылке
 )
 
 const (
-	answerUrl            = "url"             // see stateBegin
-	answerConnectionTime = "connection_time" // see stateAddConnectionTime
-	answerPingTime       = "ping_time"       // see statePingTime
+	answerUrl            = "url"             // see stateAddUrlBegin
+	answerConnectionTime = "connection_time" // see stateAddUrlAddConnectionTime
+	answerPingTime       = "ping_time"       // see stateAddUrlPingTime
 )
 
 type (
@@ -110,30 +110,30 @@ func (a *AddUrl) Run(ctx context.Context, message *tgbotapi.Message) (tgbotapi.M
 
 	if err == redis.Nil {
 		err = nil
-		state = stateNone
+		state = stateAddUrlNone
 	}
 
 	var nextState int
 	switch state {
-	case stateNone:
-		nextState = stateBegin
+	case stateAddUrlNone:
+		nextState = stateAddUrlBegin
 		msg.Text = a.questions[nextState]
-	case stateBegin:
-		nextState = stateAddConnectionTime
+	case stateAddUrlBegin:
+		nextState = stateAddUrlAddConnectionTime
 
 		// валидация ссылки
 		u, errUrl := url.Parse(message.Text)
 		if errUrl != nil || (u.Scheme == "" || u.Host == "") {
 			msg.Text = "Не валидная ссылка, повторите ввод"
-			span.RecordError(err)
+			span.RecordError(errUrl)
 			return msg, errUrl
 		}
 
 		is, errExist := a.urlRepo.UrlExist(message.Chat.ID, message.Text)
 		if errExist != nil {
 			msg.Text = "Ошибка при проверке ссылки, повторите ввод"
-			span.RecordError(err)
-			return msg, errUrl
+			span.RecordError(errExist)
+			return msg, errExist
 		}
 
 		if is {
@@ -144,11 +144,11 @@ func (a *AddUrl) Run(ctx context.Context, message *tgbotapi.Message) (tgbotapi.M
 		err = a.dialog.SaveAnswer(ctx, a.keyAnswer(message), answerUrl, message.Text)
 		if err != nil {
 			msg.Text = "ошибка при сохранении ссылки, повторите попытку"
-			nextState = stateBegin
+			nextState = stateAddUrlBegin
 		} else {
 			msg.Text = a.questions[nextState]
 		}
-	case stateAddConnectionTime:
+	case stateAddUrlAddConnectionTime:
 		// валидация времени ожидания ответа от сервера
 		_, err = time.ParseDuration(message.Text)
 		if err != nil {
@@ -160,15 +160,15 @@ func (a *AddUrl) Run(ctx context.Context, message *tgbotapi.Message) (tgbotapi.M
 			return msg, err
 		}
 
-		nextState = statePingTime
+		nextState = stateAddUrlPingTime
 		err = a.dialog.SaveAnswer(ctx, a.keyAnswer(message), answerConnectionTime, message.Text)
 		if err != nil {
 			msg.Text = "ошибка при сохранении время отклика, повторите попытку"
-			nextState = stateAddConnectionTime
+			nextState = stateAddUrlAddConnectionTime
 		} else {
 			msg.Text = a.questions[nextState]
 		}
-	case statePingTime:
+	case stateAddUrlPingTime:
 		// валидация времени ожидания ответа от сервера
 		timer, errTime := time.ParseDuration(message.Text)
 		if errTime != nil {
@@ -187,7 +187,7 @@ func (a *AddUrl) Run(ctx context.Context, message *tgbotapi.Message) (tgbotapi.M
 		err = a.dialog.SaveAnswer(ctx, a.keyAnswer(message), answerPingTime, message.Text)
 		if err != nil {
 			msg.Text = "ошибка при сохранении время повторения, повторите попытку"
-			nextState = statePingTime
+			nextState = stateAddUrlPingTime
 		} else {
 			err := a.saveUrl(ctx, message)
 			if err != nil {
@@ -207,7 +207,7 @@ func (a *AddUrl) Run(ctx context.Context, message *tgbotapi.Message) (tgbotapi.M
 			return msg, err
 		}
 	default:
-		nextState = stateNone
+		nextState = stateAddUrlNone
 		msg.Text = a.questions[0]
 	}
 

@@ -29,6 +29,21 @@ func (p *Ping) SaveUrl(userId int64, url, connectionTime, pingTime string) error
 	return nil
 }
 
+func (p *Ping) RemoveUrl(userId int64, url string) error {
+	const op = "storage.postgres.repository.ping.RemoveUrl"
+	stmt, err := p.connection.DB().Prepare(`delete from ping where user_id = $1 and url = $2`)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(userId, url)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
 func (p *Ping) UrlExist(userId int64, url string) (bool, error) {
 	const op = "storage.postgres.repository.ping.SaveUrl"
 	stmt, err := p.connection.DB().Prepare(`SELECT count(*) FROM ping WHERE user_id = $1 and url = $2`)
