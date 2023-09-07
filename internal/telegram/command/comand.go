@@ -78,7 +78,7 @@ func (c *Command) CommandEventChanelRead() <-chan model.CommandEvent {
 }
 
 func (c *Command) runCommand(message *tgbotapi.Message) {
-	const op = "telegram.command.runCommand."
+	const op = "telegram.command.runCommand"
 
 	cfg := c.kernel.Config().Jaeger
 	tp, err := tracing.NewJaegerTraceProvider(cfg.Url, cfg.Name, cfg.Env)
@@ -103,10 +103,7 @@ func (c *Command) runCommand(message *tgbotapi.Message) {
 		ctx, span := tracer.Start(ctx, fmt.Sprintf("message_from_%d", message.Chat.ID))
 		if message.IsCommand() {
 			span.SetAttributes(attribute.String("command start", handle.CommandName()))
-			if err := handle.ClearData(ctx, message); err != nil {
-				c.kernel.Log().Error(fmt.Sprintf("%s%s: %s", op, handle.CommandName(), err))
-				span.RecordError(err)
-			}
+			c.clearAllCommand(ctx, span, message)
 		}
 
 		msg, err := handle.Run(ctx, message)
@@ -151,4 +148,14 @@ func (c *Command) emitEvent(ctx context.Context, message *tgbotapi.Message, hand
 	}
 
 	return nil
+}
+
+func (c *Command) clearAllCommand(ctx context.Context, span trace.Span, message *tgbotapi.Message) {
+	const op = "telegram.command.runCommand->clearAllCommand"
+	for _, handle := range c.commands {
+		if err := handle.ClearData(ctx, message); err != nil {
+			c.kernel.Log().Error(fmt.Sprintf("%s%s: %s", op, handle.CommandName(), err))
+			span.RecordError(err)
+		}
+	}
 }
