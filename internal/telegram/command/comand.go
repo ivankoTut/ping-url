@@ -19,6 +19,7 @@ const (
 	ListUrlCommand      = "list_url"
 	MuteAllCommand      = "mute_all"
 	UnMuteAllCommand    = "unmute_all"
+	StatisticAllCommand = "statistic_all"
 )
 
 var tracer trace.Tracer

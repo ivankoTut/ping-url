@@ -119,3 +119,40 @@ func (db *Db) InsertRows(urls model.PingResultList) error {
 
 	return nil
 }
+
+func (db *Db) StatisticByUser(userId int64) (model.StatisticResultList, error) {
+	rows, err := db.conn.Query(`
+		select
+			url as Url,
+			count(url) as CounPing,
+			max(pingTime) as MaxConnectionTime,
+			min(pingTime) as MinConnectionTime,
+			avg(pingTime) as AvgConnectionTime
+		from url_status where userId = ?
+		group by url
+		order by AvgConnectionTime desc;
+	`, userId)
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	var list model.StatisticResultList
+	for rows.Next() {
+		var item model.Statistic
+		if err := rows.Scan(
+			&item.Url,
+			&item.CountPing,
+			&item.MaxConnectionTime,
+			&item.MinConnectionTime,
+			&item.AvgConnectionTime,
+		); err != nil {
+			log.Fatal(err)
+		}
+
+		list = append(list, item)
+	}
+
+	return list, nil
+}

@@ -24,6 +24,9 @@ func main() {
 	// создаем дескриптор подключения к redis
 	r := redis.MustCreateClientRedis(cfg)
 
+	//подключаемся к clickhouse
+	statisticRepo := clickhouse.MustCreateConnection(*cfg)
+
 	// инициируем ядро, которое хранит и дает доступ к основным ресурсам приложения
 	k := kernel.MustCreateKernel(cfg, db, r)
 	k.Log().Debug("kernel is initialize")
@@ -44,11 +47,9 @@ func main() {
 		command.NewListUrlCommand(pingRepository),
 		command.NewMuteCommand(userRepo),
 		command.NewUnmuteAllCommand(userRepo),
+		command.NewStatisticAllCommand(statisticRepo),
 	})
 	go handlerBot.ListenCommandAndMessage()
-
-	//подключаемся к clickhouse
-	statisticRepo := clickhouse.MustCreateConnection(k.Config())
 
 	// инициируем и запускаем "пингер"
 	runer := ping.NewPing(pingRepository, k, statisticRepo, bot)
