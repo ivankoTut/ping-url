@@ -21,6 +21,7 @@ const (
 	UnMuteAllCommand    = "unmute_all"
 	StatisticAllCommand = "statistic_all"
 	StatisticCommand    = "statistic"
+	StatisticUrlCommand = "statistic_url"
 )
 
 var tracer trace.Tracer

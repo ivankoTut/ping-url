@@ -49,6 +49,7 @@ func main() {
 		command.NewUnmuteAllCommand(userRepo),
 		command.NewStatisticAllCommand(statisticRepo),
 		command.NewStatisticCommand(statisticRepo, pingRepository),
+		command.NewStatisticUrlCommand(statisticRepo, dc, pingRepository),
 	})
 	go handlerBot.ListenCommandAndMessage()
 

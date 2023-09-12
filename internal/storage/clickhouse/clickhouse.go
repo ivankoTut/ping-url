@@ -159,7 +159,6 @@ func (db *Db) StatisticByUser(userId int64) (model.StatisticResultList, error) {
 	`, userId)
 
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
@@ -220,4 +219,30 @@ func (db *Db) CurrentStatisticByUser(userId int64, urlList []string) (model.Stat
 	}
 
 	return list, nil
+}
+
+func (db *Db) StatisticByUrl(userId int64, url string) (model.Statistic, error) {
+
+	rows, err := db.conn.Query(`select error as errorText, count(error) as count from url_status where userId = ? and url = ? and error <> '' group by error order by count desc`, userId, url)
+	if err != nil {
+		return model.Statistic{}, err
+	}
+	var errorList []model.ErrorMessage
+	for rows.Next() {
+		var errorText model.ErrorMessage
+		if err := rows.Scan(&errorText.Text, &errorText.Count); err != nil {
+			return model.Statistic{}, err
+		}
+
+		errorList = append(errorList, errorText)
+	}
+
+	statsList, err := db.CurrentStatisticByUser(userId, []string{url})
+	if err != nil {
+		return model.Statistic{}, err
+	}
+
+	statsList[0].Errors = errorList
+
+	return statsList[0], nil
 }

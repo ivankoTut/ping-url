@@ -42,6 +42,12 @@ type (
 		MaxConnectionTime float64
 		MinConnectionTime float64
 		AvgConnectionTime float64
+		Errors            []ErrorMessage
+	}
+
+	ErrorMessage struct {
+		Text  string
+		Count int
 	}
 
 	StatisticResultList []Statistic
