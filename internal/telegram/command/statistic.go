@@ -77,11 +77,13 @@ func (s *Statistic) Run(ctx context.Context, message *tgbotapi.Message) (tgbotap
 	str := strings.Builder{}
 	for _, url := range list {
 		str.WriteString(fmt.Sprintf("🌐 <code>%s</code> \n"+
-			"🔄 Коли-во соединений = <code>%d</code> \n"+
+			"🔄 Коли-во соединений - <code>%d</code> \n"+
+			"👌 Коли-во успешных соединений - <code>%d</code> \n"+
+			"⛔️ Коли-во прерваных соединений - <code>%d</code> \n"+
 			"⏳ Макс-ое время ожидания - <code>%.4f</code> \n"+
 			"⏳ Мин-ое время ожидания - <code>%.4f</code> \n"+
 			"🕤 Среднее время ожидания - <code>%.4f</code>\n\n",
-			url.Url, url.CountPing, url.MaxConnectionTime, url.MinConnectionTime, url.AvgConnectionTime),
+			url.Url, url.CountPing, url.CorrectCount, url.CancelCount, url.MaxConnectionTime, url.MinConnectionTime, url.AvgConnectionTime),
 		)
 	}
 	msg.ParseMode = tgbotapi.ModeHTML

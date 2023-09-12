@@ -148,20 +148,21 @@ func (p *Ping) ping(ping model.Ping) {
 	res, err := client.Get(ping.Url)
 	if err != nil {
 		p.sendErrorMessageInBot(ping, err)
-		p.addCompleteUrl(ping, err, 504, time.Since(start).Seconds())
+		p.addCompleteUrl(ping, err, 504, time.Since(start).Seconds(), true)
 		return
 	}
 	defer res.Body.Close()
 
-	p.addCompleteUrl(ping, nil, res.StatusCode, time.Since(start).Seconds())
+	p.addCompleteUrl(ping, nil, res.StatusCode, time.Since(start).Seconds(), false)
 }
 
-func (p *Ping) addCompleteUrl(ping model.Ping, requestError error, statusCode int, realTime float64) {
+func (p *Ping) addCompleteUrl(ping model.Ping, requestError error, statusCode int, realTime float64, isCancel bool) {
 	r := model.PingResult{
 		Ping:               ping,
 		Error:              requestError,
 		RealConnectionTime: realTime,
 		StatusCode:         statusCode,
+		IsCancel:           isCancel,
 	}
 
 	p.rwm.Lock()

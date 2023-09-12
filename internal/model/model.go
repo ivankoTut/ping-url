@@ -28,6 +28,7 @@ type (
 		Error              error
 		RealConnectionTime float64
 		StatusCode         int
+		IsCancel           bool
 	}
 
 	PingResultList []PingResult // see PingResult
@@ -36,6 +37,8 @@ type (
 	Statistic struct {
 		Url               string
 		CountPing         int
+		CorrectCount      int
+		CancelCount       int
 		MaxConnectionTime float64
 		MinConnectionTime float64
 		AvgConnectionTime float64

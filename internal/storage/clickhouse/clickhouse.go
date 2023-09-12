@@ -12,6 +12,27 @@ import (
 	"time"
 )
 
+const baseStatisticSelect = `url as Url,
+			count(url) as CountPing,
+			SUM(CASE
+				WHEN isCancel = false THEN 1
+			    ELSE 0
+			END) as CorrectCount,
+		    SUM(CASE
+				WHEN isCancel = true THEN 1
+			    ELSE 0
+			END) as CancelCount,
+			max(CASE
+				WHEN isCancel = false THEN pingTime
+			END) as MaxConnectionTime,
+			min(CASE
+				WHEN isCancel = false THEN pingTime
+			END) as MinConnectionTime,
+			avg(CASE
+				WHEN isCancel = false THEN pingTime
+			END) as AvgConnectionTime
+		from url_status `
+
 type (
 	Db struct {
 		cfg  config.Config
@@ -66,6 +87,14 @@ func (db *Db) MustRunMigrations() {
 		log.Fatal(err)
 	}
 
+	stmt, err = tx.Prepare(`
+		ALTER TABLE url_status ADD COLUMN IF NOT EXISTS isCancel Bool DEFAULT true
+		`)
+
+	if _, err := stmt.Exec(); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := tx.Commit(); err != nil {
 		log.Fatal(err)
 	}
@@ -86,13 +115,13 @@ func (db *Db) InsertRows(urls model.PingResultList) error {
 	}
 
 	stmt, err := tx.Prepare(`
-		INSERT INTO url_status (userId, url, statusCode, error, pingTime, createdAt)
+		INSERT INTO url_status (userId, url, statusCode, error, pingTime, createdAt, isCancel)
 		VALUES (
-			?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?
 		)`)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	for _, v := range urls {
@@ -109,13 +138,14 @@ func (db *Db) InsertRows(urls model.PingResultList) error {
 			errMessage,
 			v.RealConnectionTime,
 			time.Now(),
+			v.IsCancel,
 		); err != nil {
-			fmt.Println(err)
+			return err
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	return nil
@@ -123,13 +153,7 @@ func (db *Db) InsertRows(urls model.PingResultList) error {
 
 func (db *Db) StatisticByUser(userId int64) (model.StatisticResultList, error) {
 	rows, err := db.conn.Query(`
-		select
-			url as Url,
-			count(url) as CounPing,
-			max(pingTime) as MaxConnectionTime,
-			min(pingTime) as MinConnectionTime,
-			avg(pingTime) as AvgConnectionTime
-		from url_status where userId = ?
+		select `+baseStatisticSelect+` where userId = ?
 		group by url
 		order by AvgConnectionTime desc;
 	`, userId)
@@ -145,11 +169,13 @@ func (db *Db) StatisticByUser(userId int64) (model.StatisticResultList, error) {
 		if err := rows.Scan(
 			&item.Url,
 			&item.CountPing,
+			&item.CorrectCount,
+			&item.CancelCount,
 			&item.MaxConnectionTime,
 			&item.MinConnectionTime,
 			&item.AvgConnectionTime,
 		); err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		list = append(list, item)
@@ -165,21 +191,13 @@ func (db *Db) CurrentStatisticByUser(userId int64, urlList []string) (model.Stat
 	}
 
 	rows, err := db.conn.Query(`
-		select
-			url as Url,
-			count(url) as CounPing,
-			max(pingTime) as MaxConnectionTime,
-			min(pingTime) as MinConnectionTime,
-			avg(pingTime) as AvgConnectionTime
-		from url_status 
-		where 
+		select `+baseStatisticSelect+` where 
 		    userId = ? and url in (?, `+strings.Repeat("?, ", len(urlList)-1)+`)
 		group by url
 		order by AvgConnectionTime desc;
 	`, params...)
 
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
@@ -189,11 +207,13 @@ func (db *Db) CurrentStatisticByUser(userId int64, urlList []string) (model.Stat
 		if err := rows.Scan(
 			&item.Url,
 			&item.CountPing,
+			&item.CorrectCount,
+			&item.CancelCount,
 			&item.MaxConnectionTime,
 			&item.MinConnectionTime,
 			&item.AvgConnectionTime,
 		); err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		list = append(list, item)
