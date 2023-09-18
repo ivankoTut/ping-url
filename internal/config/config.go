@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/ilyakaznacheev/cleanenv"
 	"log"
 	"os"
@@ -16,6 +17,8 @@ type (
 		Jaeger          Jaeger   `yaml:"jaeger" env-required:"true"`
 		DefaultTimePing int64    `yaml:"default_time_ping" env-default:"300"`
 		AccessUserList  []int64  `yaml:"access_user_list"`
+		BaseApiUrl      string   `yaml:"base_api_url" env-required:"true"`
+		BaseApiProtocol string   `yaml:"base_api_protocol" env-default:"http://"`
 	}
 
 	Database struct {
@@ -72,4 +75,8 @@ func MustLoadConfig() *Config {
 	}
 
 	return &cfg
+}
+
+func (c *Config) FullApiPath() string {
+	return fmt.Sprintf("%s%s", c.BaseApiProtocol, c.BaseApiUrl)
 }

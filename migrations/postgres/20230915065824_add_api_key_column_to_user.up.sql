@@ -1,0 +1,1 @@
+ALTER TABLE users ADD api_key varchar(64) default null;

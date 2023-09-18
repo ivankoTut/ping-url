@@ -31,3 +31,6 @@ jaeger:
 default_time_ping: 10 # в секундах
 
 access_user_list: [] #массив айдишников: ["1", "2", "3", .... "n"]
+
+base_api_url: localhost:3333 # урл для апи
+base_api_protocol: http://

@@ -14,4 +14,8 @@ status:
 build:
 	go build -o ping-url cmd/ping/main.go
 
+args = `arg="$(filter-out $@,$(MAKECMDGOALS))" && echo $${arg:-${1}}`
+migpq:
+	@migrate create -ext sql -dir migrations/postgres $(args)
+
 start: up run

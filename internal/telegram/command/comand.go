@@ -13,15 +13,16 @@ import (
 )
 
 const (
-	RegistrationCommand = "start"
-	AddUrlCommand       = "add_url"
-	RemoveUrlCommand    = "remove_url"
-	ListUrlCommand      = "list_url"
-	MuteAllCommand      = "mute_all"
-	UnMuteAllCommand    = "unmute_all"
-	StatisticAllCommand = "statistic_all"
-	StatisticCommand    = "statistic"
-	StatisticUrlCommand = "statistic_url"
+	RegistrationCommand  = "start"
+	AddUrlCommand        = "add_url"
+	RemoveUrlCommand     = "remove_url"
+	ListUrlCommand       = "list_url"
+	MuteAllCommand       = "mute_all"
+	UnMuteAllCommand     = "unmute_all"
+	StatisticAllCommand  = "statistic_all"
+	StatisticCommand     = "statistic"
+	StatisticUrlCommand  = "statistic_url"
+	ApiKeyRefreshCommand = "api_key_refresh"
 )
 
 var tracer trace.Tracer
@@ -127,7 +128,7 @@ func (c *Command) runCommand(message *tgbotapi.Message) {
 		if err != nil {
 			span.SetAttributes(attribute.String("error send message", handle.CommandName()))
 			span.RecordError(err)
-			c.kernel.Log().Error(fmt.Sprintf("%s%s: %s", op, handle.CommandName(), err))
+			c.kernel.Log().Error(fmt.Sprintf("%s-%s: %s", op, handle.CommandName(), err))
 		}
 
 		span.End()

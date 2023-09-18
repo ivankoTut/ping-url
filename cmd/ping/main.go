@@ -5,6 +5,7 @@ import (
 	"github.com/ivankoTut/ping-url/internal/kernel"
 	"github.com/ivankoTut/ping-url/internal/ping"
 	"github.com/ivankoTut/ping-url/internal/secure"
+	"github.com/ivankoTut/ping-url/internal/server"
 	"github.com/ivankoTut/ping-url/internal/storage/clickhouse"
 	"github.com/ivankoTut/ping-url/internal/storage/postgres"
 	postgresRepository "github.com/ivankoTut/ping-url/internal/storage/postgres/repository"
@@ -35,11 +36,15 @@ func main() {
 	bot := telegram.MustCreateBot(k, secure.NewUserProvider(cfg))
 	go bot.StartListen()
 
-	// подключаем команды, которые хотим обрабатывать и слушаем их
+	// инициируем репозитории
 	dc := redisRepository.NewCommandRepository(r)
 	pingRepository := postgresRepository.NewPing(db)
 	userRepo := postgresRepository.NewUser(db)
 
+	// запускаем апи сервер
+	go server.RunApiServer(userRepo, cfg.BaseApiUrl)
+
+	// подключаем команды, которые хотим обрабатывать и слушаем их
 	handlerBot := command.NewCommand(k, bot, []command.HandlerCommand{
 		command.NewAddUrlCommand(dc, pingRepository),
 		command.NewRemoveUrlCommand(dc, pingRepository),
@@ -50,6 +55,7 @@ func main() {
 		command.NewStatisticAllCommand(statisticRepo),
 		command.NewStatisticCommand(statisticRepo, pingRepository),
 		command.NewStatisticUrlCommand(statisticRepo, dc, pingRepository),
+		command.NewApiKeyRefreshCommand(userRepo, cfg.FullApiPath()),
 	})
 	go handlerBot.ListenCommandAndMessage()
 

@@ -2,8 +2,13 @@ package repository
 
 import (
 	"context"
+	"crypto/sha256"
+	"errors"
 	"fmt"
 	"github.com/ivankoTut/ping-url/internal/kernel"
+	"github.com/ivankoTut/ping-url/internal/model"
+	"net/http"
+	"time"
 )
 
 type User struct {
@@ -66,4 +71,55 @@ func (u *User) muteUnmute(ctx context.Context, userId int64, mute bool) error {
 	}
 
 	return nil
+}
+
+func (u *User) UserFromRequest(r *http.Request) (*model.User, error) {
+	const apiKeY = "api-key"
+	var key string
+
+	keyQuery := r.URL.Query()[apiKeY]
+	if len(keyQuery) == 1 {
+		key = keyQuery[0]
+	}
+
+	if key == "" {
+		key = r.Header.Get(apiKeY)
+	}
+
+	if key == "" {
+		return nil, errors.New("не передан заголовок содержащий api ключ доступа")
+	}
+
+	stmt, err := u.connection.DB().Prepare("SELECT id, login, mute FROM users WHERE api_key = $1")
+	if err != nil {
+		return nil, fmt.Errorf("prepare statement: %w", err)
+	}
+
+	var user model.User
+	err = stmt.QueryRow(key).Scan(&user.Id, &user.Login, &user.Mute)
+
+	if user.Id == 0 {
+		return nil, errors.New("пользователь не найден")
+	}
+
+	return &user, err
+}
+
+func (u *User) ApiKey(ctx context.Context, userId int64) (string, error) {
+	const op = "storage.postgres.repository.user.ApiKey"
+
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%s-%d", time.Now().String(), userId)))
+	keyApi := fmt.Sprintf("%x", sum)
+
+	stmt, err := u.connection.DB().Prepare("update users set api_key = $1 where id = $2")
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(keyApi, userId)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	return keyApi, nil
 }
