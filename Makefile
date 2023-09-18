@@ -19,3 +19,6 @@ migpq:
 	@migrate create -ext sql -dir migrations/postgres $(args)
 
 start: up run
+
+golint:
+	@golangci-lint run cmd/* internal/*

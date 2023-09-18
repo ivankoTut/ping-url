@@ -141,7 +141,8 @@ func (p *Ping) ping(ping model.Ping) {
 	start := time.Now()
 	connectionTimeout, err := time.ParseDuration(ping.ConnectionTime)
 	if err != nil {
-
+		p.sendErrorMessageInBot(ping, err)
+		return
 	}
 	client := &http.Client{Timeout: connectionTimeout}
 
@@ -171,7 +172,7 @@ func (p *Ping) addCompleteUrl(ping model.Ping, requestError error, statusCode in
 }
 
 func (p *Ping) SaveCompleteUrl() {
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
@@ -192,12 +193,10 @@ func (p *Ping) SaveCompleteUrl() {
 
 func (p *Ping) ListenCommandEvents(commandEvent <-chan model.CommandEvent) {
 	for {
-		select {
-		case event := <-commandEvent:
-			if p.isRefreshEvent(event) {
-				p.kernel.Log().Debug(fmt.Sprintf("refresh %s command %s", event.Process, event.Command))
-				p.refreshPingList(true)
-			}
+		event := <-commandEvent
+		if p.isRefreshEvent(event) {
+			p.kernel.Log().Debug(fmt.Sprintf("refresh %s command %s", event.Process, event.Command))
+			p.refreshPingList(true)
 		}
 	}
 }
@@ -213,13 +212,13 @@ func (p *Ping) refreshPingList(force bool) {
 
 	p.kernel.Log().Debug(fmt.Sprintf("old count: %d, new count: %d", p.countPing, count))
 
-	if count == p.countPing && force == false {
+	if count == p.countPing && !force {
 		return
 	}
 
 	timerList, err := p.listProvider.UrlList(100, 0)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("%s, error: %s", op, err))
+		log.Fatalf("%s, error: %s", op, err)
 	}
 
 	p.stopPing()
