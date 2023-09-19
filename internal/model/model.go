@@ -3,11 +3,12 @@ package model
 type (
 	// Ping моделька для представления записи в тиблице ping
 	Ping struct {
-		UserId         int64
-		Url            string
-		ConnectionTime string
-		PingTime       string
-		User           User
+		Id             int64  `json:"id"`
+		UserId         int64  `json:"-"`
+		Url            string `json:"url"`
+		ConnectionTime string `json:"connection_time"`
+		PingTime       string `json:"ping_time"`
+		User           User   `json:"-"`
 	}
 
 	// User моделька для представления записи в тиблице users
@@ -35,19 +36,19 @@ type (
 
 	// Statistic данные по пингам
 	Statistic struct {
-		Url               string
-		CountPing         int
-		CorrectCount      int
-		CancelCount       int
-		MaxConnectionTime float64
-		MinConnectionTime float64
-		AvgConnectionTime float64
-		Errors            []ErrorMessage
+		Url               string         `json:"url"`
+		CountPing         int            `json:"count_ping"`
+		CorrectCount      int            `json:"correct_count"`
+		CancelCount       int            `json:"cancel_count"`
+		MaxConnectionTime float64        `json:"max_connection_time"`
+		MinConnectionTime float64        `json:"min_connection_time"`
+		AvgConnectionTime float64        `json:"avg_connection_time"`
+		Errors            []ErrorMessage `json:"errors,omitempty"`
 	}
 
 	ErrorMessage struct {
-		Text  string
-		Count int
+		Text  string `json:"text"`
+		Count int    `json:"count"`
 	}
 
 	StatisticResultList []Statistic

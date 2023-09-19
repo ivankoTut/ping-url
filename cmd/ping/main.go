@@ -42,7 +42,7 @@ func main() {
 	userRepo := postgresRepository.NewUser(db)
 
 	// запускаем апи сервер
-	go server.RunApiServer(userRepo, cfg.BaseApiUrl)
+	go server.RunApiServer(userRepo, k, statisticRepo, pingRepository)
 
 	// подключаем команды, которые хотим обрабатывать и слушаем их
 	handlerBot := command.NewCommand(k, bot, []command.HandlerCommand{
