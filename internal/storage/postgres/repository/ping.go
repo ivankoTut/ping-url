@@ -57,6 +57,34 @@ func (p *Ping) UrlExist(userId int64, url string) (bool, error) {
 	return count > 0, err
 }
 
+func (p *Ping) UrlExistById(userId int64, id string) (bool, error) {
+	const op = "storage.postgres.repository.ping.UrlExistById"
+	stmt, err := p.connection.DB().Prepare(`SELECT count(*) FROM ping WHERE user_id = $1 and id = $2`)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var count int
+	err = stmt.QueryRow(userId, id).Scan(&count)
+
+	return count > 0, err
+}
+
+func (p *Ping) RemoveUrlById(userId int64, id string) error {
+	const op = "storage.postgres.repository.ping.RemoveUrlById"
+	stmt, err := p.connection.DB().Prepare(`delete from ping where user_id = $1 and id = $2`)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = stmt.Exec(userId, id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
 func (p *Ping) UrlListByUser(userId int64) (model.PingList, error) {
 	const op = "storage.postgres.repository.ping.UrlListByUser"
 

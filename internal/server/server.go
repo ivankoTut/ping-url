@@ -31,7 +31,8 @@ func RunApiServer(userRepo *repository.User, k *kernel.Kernel, clickhouseStatsRe
 	})
 
 	r.Route("/ping", func(r chi.Router) {
-		r.Get("/list", ping.NewList(k.Log(), pingRepository))
+		r.Get("/", ping.NewList(k.Log(), pingRepository))
+		r.Delete("/{id}", ping.NewDelete(k.Log(), pingRepository))
 	})
 
 	http.ListenAndServe(k.Config().BaseApiUrl, r)
